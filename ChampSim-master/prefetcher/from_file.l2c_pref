@@ -1,0 +1,93 @@
+#include "ooo_cpu.h"
+#include "cache.h"
+
+#include <cstdlib>
+#include <fstream>
+#include <limits>
+#include <unordered_map>
+#include <vector>
+
+#include "prefetcher.h"
+#include "scooby.h"
+
+#define MAX_PREFETCH_DEGREE 2
+
+unordered_map<uint64_t, vector<uint64_t>> prefetches;
+
+Scooby *pref_scooby;
+
+void CACHE::l2c_prefetcher_initialize() 
+{
+    cout << "adding L2C_PREFETCHER: Scooby" << endl;
+    pref_scooby =  new Scooby("scooby");
+
+}
+
+uint32_t CACHE::l2c_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit, uint8_t type, uint32_t metadata_in)
+{
+	vector<uint64_t> pref_addr;
+    pref_scooby->invoke_prefetcher(ip, addr, cache_hit, type, pref_addr);
+    if(!pref_addr.empty())
+    {
+
+        //NOTE added the max prefetch degree check
+        for(uint32_t addr_index = 0; addr_index < pref_addr.size() && addr_index < MAX_PREFETCH_DEGREE; ++addr_index)
+        {
+            //NOTE changed this to fill the LLC
+            prefetch_line(ip, addr, pref_addr[addr_index], FILL_L2, 0);
+        }
+    }
+    pref_addr.clear();
+    return metadata_in;
+
+}
+
+uint32_t CACHE::l2c_prefetcher_cache_fill(uint64_t addr, uint32_t set, uint32_t way, uint8_t prefetch, uint64_t evicted_addr, uint32_t metadata_in)
+{
+	if(prefetch)
+	{
+        pref_scooby->register_fill(addr);
+
+    }
+
+
+  return metadata_in;
+}
+
+void CACHE::l2c_prefetcher_final_stats()
+{
+    cout << "CPU " << cpu << " LLC from file prefetcher final stats" << endl;
+}
+
+
+uint32_t CACHE::l2c_prefetcher_prefetch_hit(uint64_t addr, uint64_t ip, uint32_t metadata_in)
+{
+    pref_scooby->register_prefetch_hit(addr);
+
+    return metadata_in;
+}
+
+/*
+void CACHE::l2c_prefetcher_print_config()
+{
+	
+}*/
+
+void CACHE::l2c_prefetcher_broadcast_bw(uint8_t bw_level)
+{
+    pref_scooby->update_bw(bw_level);
+
+}
+
+void CACHE::l2c_prefetcher_broadcast_ipc(uint8_t ipc)
+{
+    pref_scooby->update_ipc(ipc);
+
+}
+
+void CACHE::l2c_prefetcher_broadcast_acc(uint32_t acc_level)
+{
+    pref_scooby->update_acc(acc_level);
+
+}
+

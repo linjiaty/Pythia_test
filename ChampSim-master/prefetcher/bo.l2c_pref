@@ -1,0 +1,60 @@
+#include "bol2.h" 
+#define DEGREE 2
+
+void CACHE::l2c_prefetcher_initialize() 
+{
+    cout << "adding L2C_PREFETCHER: BO" << endl;
+	bo_prefetcher_initialize();
+}
+
+uint32_t CACHE::l2c_prefetcher_operate(uint64_t addr, uint64_t ip, uint8_t cache_hit, uint8_t type, uint32_t metadata_in)
+{
+
+/*    if(instr_id == 0)
+        return metadata_in;
+*/
+    vector<uint64_t> bo_candidates;
+    bo_prefetcher_operate(addr, ip, cache_hit, type, get_set(addr), get_way(addr, get_set(addr)), DEGREE, bo_candidates);
+    for(uint32_t i=0; i<bo_candidates.size(); i++)
+        prefetch_line(ip, addr, bo_candidates[i], FILL_L2, 0);
+    return metadata_in;
+}
+
+uint32_t CACHE::l2c_prefetcher_cache_fill(uint64_t addr, uint32_t set, uint32_t way, uint8_t prefetch, uint64_t evicted_addr, uint32_t metadata_in)
+
+{
+    bo_prefetcher_cache_fill(addr, set, way, prefetch, evicted_addr);
+    return metadata_in;
+}
+
+void CACHE::l2c_prefetcher_final_stats()
+{
+	bo_prefetcher_final_stats();
+}
+
+
+uint32_t CACHE::l2c_prefetcher_prefetch_hit(uint64_t addr, uint64_t ip, uint32_t metadata_in)
+{
+    return metadata_in;
+}
+
+/*
+void CACHE::l2c_prefetcher_print_config()
+{
+	
+}*/
+
+void CACHE::l2c_prefetcher_broadcast_bw(uint8_t bw_level)
+{
+
+}
+
+void CACHE::l2c_prefetcher_broadcast_ipc(uint8_t ipc)
+{
+    printf("ipc was %d\n", ipc);
+}
+
+void CACHE::l2c_prefetcher_broadcast_acc(uint32_t acc_level)
+{
+
+}
